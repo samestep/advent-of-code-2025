@@ -1,0 +1,56 @@
+type I32 = wasm::I32;
+
+fn load_char[basic](address: I32): I32 {
+    wasm::i32_load8_u[wasm::align=0, wasm::offset=0](address)
+}
+
+fn string_to_uint[basic](str: String): I32 {
+  var n = 0;
+  var i = 0;
+  while i < str.length {
+    n = n * 10 + load_char(str.pointer + i) - 48;
+    i = i + 1;
+  }
+  n
+}
+
+fn main[alloc]() {
+  let input = read(args().get(1));
+  var password = 0;
+  var dial = 50;
+  var line_start = 0;
+  while line_start < input.length {
+    var line_end = line_start;
+    while load_char(input.pointer + line_end) != 10 {
+      line_end = line_end + 1;
+    }
+
+    let d = load_char(input.pointer + line_start);
+    var n = string_to_uint(String {
+      pointer = input.pointer + line_start + 1,
+      length = line_end - (line_start + 1),
+    });
+    while n > 0 {
+      if d == 76 {
+        dial = dial - 1;
+        while dial < 0 {
+          dial = dial + 100;
+        }
+      } else if d == 82 {
+        dial = dial + 1;
+        while dial > 99 {
+          dial = dial - 100;
+        }
+      } else {
+        wasm::unreachable();
+      }
+      if dial == 0 {
+        password = password + 1;
+      }
+      n = n - 1;
+    }
+
+    line_start = line_end + 1;
+  }
+  println(uint_to_string(password));
+}
