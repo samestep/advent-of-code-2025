@@ -1,0 +1,3 @@
+*.txt
+/.direnv/
+/.envrc
