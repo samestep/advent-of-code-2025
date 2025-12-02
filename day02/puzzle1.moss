@@ -1,0 +1,41 @@
+type I32 = wasm::I32;
+
+fn not_end[basic](str: String, end: I32): I32 {
+  let result = if str.get(end) == 10 {
+    false
+  } else if str.get(end) == 44 {
+    false
+  } else {
+    true
+  };
+  result
+}
+
+fn main[alloc]() {
+  let input = read(args().get(1));
+  var start = 0;
+  while start < input.length {
+    var middle = start;
+    while input.get(middle) != 45 {
+      middle = middle + 1;
+    }
+    var end = middle;
+    while not_end(input, end) {
+      end = end + 1;
+    }
+
+    let first = string_to_uint32(String {
+      pointer = input.pointer + start,
+      length = middle - start,
+    });
+    let last = string_to_uint32(String {
+      pointer = input.pointer + middle + 1,
+      length = end - (middle + 1),
+    });
+    print(uint32_to_string(first));
+    print(" ");
+    println(uint32_to_string(last));
+
+    start = end + 1;
+  }
+}
