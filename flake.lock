@@ -101,11 +101,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1764687057,
-        "narHash": "sha256-iiYGriykYDum6Xvy3NUzmySvlRGaQGM1/qylauegFKo=",
+        "lastModified": 1764717303,
+        "narHash": "sha256-EgCHO5XIM+pP6/NuawGAELqPakmXumBgIZc8lFbuckU=",
         "owner": "moss-lang",
         "repo": "moss",
-        "rev": "cf8d580ed83bd8a7e0bc36f7ea78eda1b4eb1a1f",
+        "rev": "544ef04435ff903755c58e1ee3298c504b64fa8a",
         "type": "github"
       },
       "original": {

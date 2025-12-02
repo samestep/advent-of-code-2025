@@ -13,6 +13,7 @@ fn not_end[basic](str: String, end: I32): I32 {
 
 fn main[alloc]() {
   let input = read(args().get(1));
+  var sum = wasm::i64_extend_i32_u(0);
   var start = 0;
   while start < input.length {
     var middle = start;
@@ -24,18 +25,37 @@ fn main[alloc]() {
       end = end + 1;
     }
 
-    let first = string_to_uint32(String {
+    let first = string_to_uint64(String {
       pointer = input.pointer + start,
       length = middle - start,
     });
-    let last = string_to_uint32(String {
+    let last = string_to_uint64(String {
       pointer = input.pointer + middle + 1,
       length = end - (middle + 1),
     });
-    print(uint32_to_string(first));
-    print(" ");
-    println(uint32_to_string(last));
+    var n = first;
+    while wasm::i64_le_u(n, last) {
+      let s = uint64_to_string(n);
+      if s.length % 2 == 0 {
+        let h = s.length / 2;
+        var a = 0;
+        var b = h;
+        var equal = true;
+        while a < h {
+          if s.get(a) != s.get(b) {
+            equal = false;
+          }
+          a = a + 1;
+          b = b + 1;
+        }
+        if equal {
+          sum = wasm::i64_add(sum, n);
+        }
+      }
+      n = wasm::i64_add(n, wasm::i64_extend_i32_u(1));
+    }
 
     start = end + 1;
   }
+  println(uint64_to_string(sum));
 }
