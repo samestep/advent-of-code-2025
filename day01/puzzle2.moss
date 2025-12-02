@@ -10,7 +10,7 @@ fn main[alloc]() {
     }
 
     let d = input.get(line_start);
-    var n = string_to_uint(String {
+    var n = string_to_uint32(String {
       pointer = input.pointer + line_start + 1,
       length = line_end - (line_start + 1),
     });
@@ -36,5 +36,5 @@ fn main[alloc]() {
 
     line_start = line_end + 1;
   }
-  println(uint_to_string(password));
+  println(uint32_to_string(password));
 }
