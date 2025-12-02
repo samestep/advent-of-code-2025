@@ -1,7 +1,7 @@
 type I32 = wasm::I32;
 
 fn load_char[basic](address: I32): I32 {
-    wasm::i32_load8_u[wasm::align=0, wasm::offset=0](address)
+  wasm::i32_load8_u[wasm::align=0, wasm::offset=0](address)
 }
 
 fn string_to_uint[basic](str: String): I32 {
