@@ -1,19 +1,3 @@
-type I32 = wasm::I32;
-
-fn load_char[basic](address: I32): I32 {
-  wasm::i32_load8_u[wasm::align=0, wasm::offset=0](address)
-}
-
-fn string_to_uint[basic](str: String): I32 {
-  var n = 0;
-  var i = 0;
-  while i < str.length {
-    n = n * 10 + load_char(str.pointer + i) - 48;
-    i = i + 1;
-  }
-  n
-}
-
 fn main[alloc]() {
   let input = read(args().get(1));
   var password = 0;
@@ -21,11 +5,11 @@ fn main[alloc]() {
   var line_start = 0;
   while line_start < input.length {
     var line_end = line_start;
-    while load_char(input.pointer + line_end) != 10 {
+    while input.get(line_end) != 10 {
       line_end = line_end + 1;
     }
 
-    let d = load_char(input.pointer + line_start);
+    let d = input.get(line_start);
     var n = string_to_uint(String {
       pointer = input.pointer + line_start + 1,
       length = line_end - (line_start + 1),
