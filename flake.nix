@@ -28,8 +28,8 @@
             pkgs.aoc-cli
             pkgs.binaryen
             pkgs.moss
-            pkgs.wasmtime
             pkgs.wasm-tools
+            pkgs.wasmtime
           ];
         };
       }
