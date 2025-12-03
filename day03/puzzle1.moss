@@ -1,0 +1,32 @@
+fn main[alloc]() {
+  let input = read(args().get(1));
+  var sum = 0;
+  var line = 0;
+  while line < input.length {
+    var end = line;
+    while input.get(end) != 10 {
+      end = end + 1;
+    }
+
+    let len = end - line;
+    var joltage = 0;
+    var i = 0;
+    while i + 1 < len {
+      let a = input.get(line + i) - 48;
+      var j = i + 1;
+      while j < len {
+        let b = input.get(line + j) - 48;
+        let c = a * 10 + b;
+        if c > joltage {
+          joltage = c;
+        }
+        j = j + 1;
+      }
+      i = i + 1;
+    }
+    sum = sum + joltage;
+
+    line = end + 1;
+  }
+  println(uint32_to_string(sum));
+}
