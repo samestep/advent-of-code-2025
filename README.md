@@ -11,7 +11,7 @@ echo use flake > .envrc && direnv allow
 Once you've configured the [session cookie required by `aoc`](https://github.com/scarvalhojr/aoc-cli/tree/0.12.0?tab=readme-ov-file#session-cookie-), you can download your day 1 puzzle input like this:
 
 ```sh
-aoc download --input-only --day=1 --input-file=day01/input.txt
+aoc download --input-only --year=2025 --day=1 --input-file=day01/input.txt
 ```
 
 Then you can run the first day 1 puzzle like this:
