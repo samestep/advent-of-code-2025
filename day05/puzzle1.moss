@@ -21,8 +21,8 @@ fn main[alloc]() {
     });
     reserve(16);
     let pointer = stack();
-    wasm::i64_store[wasm::align=0, wasm::offset=0](pointer, first);
-    wasm::i64_store[wasm::align=0, wasm::offset=8](pointer, last);
+    wasm::i64_store[wasm::align=3, wasm::offset=0](pointer, first);
+    wasm::i64_store[wasm::align=3, wasm::offset=8](pointer, last);
     claim(16);
     start = end + 1;
   }
@@ -41,8 +41,8 @@ fn main[alloc]() {
     var fresh = false;
     var range = ranges;
     while range < ranges_end {
-      let first = wasm::i64_load[wasm::align=0, wasm::offset=0](range);
-      let last = wasm::i64_load[wasm::align=0, wasm::offset=8](range);
+      let first = wasm::i64_load[wasm::align=3, wasm::offset=0](range);
+      let last = wasm::i64_load[wasm::align=3, wasm::offset=8](range);
       if wasm::i64_lt_u(id, first) {
       } else if wasm::i64_lt_u(last, id) {
       } else {
