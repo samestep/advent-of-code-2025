@@ -101,11 +101,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1764862420,
-        "narHash": "sha256-+rcTBsRZKsDP+Ngro6QG694zmQ/KJx31XoKYv9nPl3I=",
+        "lastModified": 1764937501,
+        "narHash": "sha256-8id4NUfQM3xjZThJ7t4d0D1ikT5j05oLOD268HiX6Po=",
         "owner": "moss-lang",
         "repo": "moss",
-        "rev": "07e47a5bd9cb2dc7ecb6dcda205aa2620bd4a36d",
+        "rev": "c688d3e7f906bc076cb8dc8976085bdab65f1f68",
         "type": "github"
       },
       "original": {
@@ -116,11 +116,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1764677808,
-        "narHash": "sha256-H3lC7knbXOBrHI9hITQ7modLuX20mYJVhZORL5ioms0=",
+        "lastModified": 1764831616,
+        "narHash": "sha256-OtzF5wBvO0jgW1WW1rQU9cMGx7zuvkF7CAVJ1ypzkxA=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "1aab89277eb2d87823d5b69bae631a2496cff57a",
+        "rev": "c97c47f2bac4fa59e2cbdeba289686ae615f8ed4",
         "type": "github"
       },
       "original": {

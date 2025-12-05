@@ -1,0 +1,59 @@
+fn main[alloc]() {
+  let input = read(args().get(1));
+  let ranges = stack();
+  var start = 0;
+  while input.get(start) != 10 {
+    var middle = start;
+    while input.get(middle) != 45 {
+      middle = middle + 1;
+    }
+    var end = middle;
+    while input.get(end) != 10 {
+      end = end + 1;
+    }
+    let first = string_to_uint64(String {
+      pointer = input.pointer + start,
+      length = middle - start,
+    });
+    let last = string_to_uint64(String {
+      pointer = input.pointer + middle + 1,
+      length = end - (middle + 1),
+    });
+    reserve(16);
+    let pointer = stack();
+    wasm::i64_store[wasm::align=0, wasm::offset=0](pointer, first);
+    wasm::i64_store[wasm::align=0, wasm::offset=8](pointer, last);
+    claim(16);
+    start = end + 1;
+  }
+  let ranges_end = stack();
+  start = start + 1;
+  var count = 0;
+  while start < input.length {
+    var end = start;
+    while input.get(end) != 10 {
+      end = end + 1;
+    }
+    let id = string_to_uint64(String {
+      pointer = input.pointer + start,
+      length = end - start,
+    });
+    var fresh = false;
+    var range = ranges;
+    while range < ranges_end {
+      let first = wasm::i64_load[wasm::align=0, wasm::offset=0](range);
+      let last = wasm::i64_load[wasm::align=0, wasm::offset=8](range);
+      if wasm::i64_lt_u(id, first) {
+      } else if wasm::i64_lt_u(last, id) {
+      } else {
+        fresh = true;
+      }
+      range = range + 16;
+    }
+    if fresh {
+      count = count + 1;
+    }
+    start = end + 1;
+  }
+  println(uint32_to_string(count));
+}
