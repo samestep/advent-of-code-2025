@@ -1,0 +1,97 @@
+type I32 = wasm::I32;
+
+struct Grid {
+  string: String,
+  width: I32,
+}
+
+fn Grid.width(): I32 {
+  this.width
+}
+
+fn Grid.height(): I32 {
+  this.string.length / (this.width + 1)
+}
+
+fn Grid.get[basic](row: I32, col: I32): I32 {
+  this.string.get(row * (this.width() + 1) + col)
+}
+
+fn Grid.get_string[basic](row: I32, col: I32, len: I32): String {
+  let start = row * (this.width() + 1) + col;
+  String { pointer = this.string.pointer + start, length = len }
+}
+
+fn make_grid[basic](string: String): Grid {
+  var width = 0;
+  while string.get(width) != 10 {
+    width = width + 1;
+  }
+  Grid { string, width }
+}
+
+fn main[alloc]() {
+  let input = read(args().get(1));
+  let grid = make_grid(input);
+  var grand_total = wasm::i64_extend_i32_u(0);
+  var col = 0;
+  while col < grid.width() {
+    var end = col;
+    var searching = true;
+    while searching {
+      var found = true;
+      var row = 0;
+      while row < grid.height() {
+        if grid.get(row, end) != 32 {
+          found = false;
+        }
+        row = row + 1;
+      }
+      if found {
+        searching = false;
+      } else {
+        end = end + 1;
+        if end >= grid.width() {
+          searching = false;
+        }
+      }
+    }
+    let op = grid.get(grid.height() - 1, col);
+    if op == 32 {
+      wasm::unreachable();
+    }
+    var answer = wasm::i64_extend_i32_u(0);
+    if op == 42 {
+      answer = wasm::i64_extend_i32_u(1);
+    }
+    row = 0;
+    while row < grid.height() - 1 {
+      var start = col;
+      while grid.get(row, start) == 32 {
+        start = start + 1;
+      }
+      var after = start;
+      searching = true;
+      while searching {
+        after = after + 1;
+        if after >= grid.width() {
+          searching = false;
+        } else if grid.get(row, after) == 32 {
+          searching = false;
+        }
+      }
+      let n = string_to_uint64(grid.get_string(row, start, after - start));
+      if op == 42 {
+        answer = wasm::i64_mul(answer, n);
+      } else if op == 43 {
+        answer = wasm::i64_add(answer, n);
+      } else {
+        wasm::unreachable();
+      }
+      row = row + 1;
+    }
+    grand_total = wasm::i64_add(grand_total, answer);
+    col = end + 1;
+  }
+  println(uint64_to_string(grand_total));
+}
