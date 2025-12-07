@@ -1,0 +1,67 @@
+type I32 = wasm::I32;
+
+struct Grid {
+  string: String,
+  width: I32,
+}
+
+fn Grid.width(): I32 {
+  this.width
+}
+
+fn Grid.height(): I32 {
+  this.string.length / (this.width + 1)
+}
+
+fn Grid.get[basic](row: I32, col: I32): I32 {
+  this.string.get(row * (this.width() + 1) + col)
+}
+
+fn Grid.set[basic](row: I32, col: I32, char: I32) {
+  if row < 0 {
+  } else if col < 0 {
+  } else if row >= this.height() {
+  } else if col >= this.width() {
+  } else {
+    let address = this.string.pointer + row * (this.width() + 1) + col;
+    wasm::i32_store8[wasm::align=0, wasm::offset=0](address, char);
+  }
+}
+
+fn make_grid[basic](string: String): Grid {
+  var width = 0;
+  while string.get(width) != 10 {
+    width = width + 1;
+  }
+  Grid { string, width }
+}
+
+fn main[alloc]() {
+  let input = read(args().get(1));
+  let grid = make_grid(input);
+  var splits = 0;
+  var row = 1;
+  while row < grid.height() {
+    var col = 0;
+    while col < grid.width() {
+      let here = grid.get(row, col);
+      let above = grid.get(row - 1, col);
+      if here == 46 {
+        if above == 83 {
+          grid.set(row, col, 124);
+        } else if above == 124 {
+          grid.set(row, col, 124);
+        }
+      } else if here == 94 {
+        if above == 124 {
+          splits = splits + 1;
+          grid.set(row, col - 1, 124);
+          grid.set(row, col + 1, 124);
+        }
+      }
+      col = col + 1;
+    }
+    row = row + 1;
+  }
+  println(uint32_to_string(splits));
+}
