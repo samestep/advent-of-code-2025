@@ -18,9 +18,9 @@ fn Grid.get[basic](row: I32, col: I32): I32 {
     0
   } else if col < 0 {
     0
-  } else if row >= this.width() {
+  } else if row >= this.height() {
     0
-  } else if col >= this.height() {
+  } else if col >= this.width() {
     0
   } else if this.string.get(row * (this.width() + 1) + col) == 64 {
     1
@@ -33,8 +33,8 @@ fn Grid.get[basic](row: I32, col: I32): I32 {
 fn Grid.remove[basic](row: I32, col: I32) {
   if row < 0 {
   } else if col < 0 {
-  } else if row >= this.width() {
-  } else if col >= this.height() {
+  } else if row >= this.height() {
+  } else if col >= this.width() {
   } else {
     let address = this.string.pointer + row * (this.width() + 1) + col;
     wasm::i32_store8[wasm::align=0, wasm::offset=0](address, 46);

@@ -18,9 +18,9 @@ fn Grid.get[basic](row: I32, col: I32): I32 {
     0
   } else if col < 0 {
     0
-  } else if row >= this.width() {
+  } else if row >= this.height() {
     0
-  } else if col >= this.height() {
+  } else if col >= this.width() {
     0
   } else if this.string.get(row * (this.width() + 1) + col) == 64 {
     1
