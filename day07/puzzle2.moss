@@ -1,0 +1,125 @@
+type I32 = wasm::I32;
+type I64 = wasm::I64;
+
+struct Grid {
+  string: String,
+  width: I32,
+}
+
+fn Grid.width(): I32 {
+  this.width
+}
+
+fn Grid.height(): I32 {
+  this.string.length / (this.width + 1)
+}
+
+fn Grid.get[basic](row: I32, col: I32): I32 {
+  this.string.get(row * (this.width() + 1) + col)
+}
+
+fn Grid.set[basic](row: I32, col: I32, char: I32) {
+  if row < 0 {
+  } else if col < 0 {
+  } else if row >= this.height() {
+  } else if col >= this.width() {
+  } else {
+    let address = this.string.pointer + row * (this.width() + 1) + col;
+    wasm::i32_store8[wasm::align=0, wasm::offset=0](address, char);
+  }
+}
+
+fn make_grid[basic](string: String): Grid {
+  var width = 0;
+  while string.get(width) != 10 {
+    width = width + 1;
+  }
+  Grid { string, width }
+}
+
+struct Counts {
+  pointer: I32,
+  width: I32,
+  height: I32,
+}
+
+fn Counts.address[basic](row: I32, col: I32): I32 {
+  let address = if row < 0 {
+    wasm::unreachable();
+    0
+  } else if col < 0 {
+    wasm::unreachable();
+    0
+  } else if row >= this.height {
+    wasm::unreachable();
+    0
+  } else if col >= this.width {
+    wasm::unreachable();
+    0
+  } else {
+    this.pointer + 8 * (row * this.width + col)
+  };
+  address
+}
+
+fn Counts.get[basic](row: I32, col: I32): I64 {
+  let address = this.address(row, col);
+  wasm::i64_load[wasm::align=3, wasm::offset=0](address)
+}
+
+fn Counts.set[basic](row: I32, col: I32, count: I64) {
+  let address = this.address(row, col);
+  wasm::i64_store[wasm::align=3, wasm::offset=0](address, count);
+}
+
+fn make_counts[alloc](width: I32, height: I32): Counts {
+  let bytes = width * height * 8;
+  reserve(bytes);
+  let counts = Counts { pointer = stack(), width, height };
+  claim(bytes);
+  var row = 0;
+  while row < height {
+    var col = 0;
+    while col < width {
+      counts.set(row, col, wasm::i64_extend_i32_u(0));
+      col = col + 1;
+    }
+    row = row + 1;
+  }
+  counts
+}
+
+fn main[alloc]() {
+  let input = read(args().get(1));
+  let grid = make_grid(input);
+  let counts = make_counts(grid.width(), grid.height());
+  var row = 1;
+  while row < grid.height() {
+    var col = 0;
+    while col < grid.width() {
+      let here = grid.get(row, col);
+      let above = grid.get(row - 1, col);
+      let up = counts.get(row - 1, col);
+      if here == 46 {
+        if above == 83 {
+          counts.set(row, col, wasm::i64_extend_i32_u(1));
+        } else {
+          counts.set(row, col, wasm::i64_add(counts.get(row, col), up));
+        }
+      } else if here == 94 {
+        counts.set(row, col - 1, wasm::i64_add(counts.get(row, col - 1), up));
+        counts.set(row, col + 1, wasm::i64_add(counts.get(row, col + 1), up));
+      }
+      col = col + 1;
+    }
+    row = row + 1;
+  }
+  var worlds = wasm::i64_extend_i32_u(0);
+  row = grid.height() - 1;
+  var col = 0;
+  while col < grid.width() {
+    worlds = wasm::i64_add(worlds, counts.get(row, col));
+    col = col + 1;
+  }
+  println(uint64_to_string(worlds));
+}
