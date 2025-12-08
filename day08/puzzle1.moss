@@ -1,0 +1,259 @@
+type I32 = wasm::I32;
+type I64 = wasm::I64;
+
+fn i32_load[basic](address: I32): I32 {
+    wasm::i32_load[wasm::align=2, wasm::offset=0](address)
+}
+
+fn i64_load[basic](address: I32): I64 {
+    wasm::i64_load[wasm::align=3, wasm::offset=0](address)
+}
+
+fn i32_store[basic](address: I32, value: I32) {
+    wasm::i32_store[wasm::align=2, wasm::offset=0](address, value)
+}
+
+fn i64_store[basic](address: I32, value: I64) {
+    wasm::i64_store[wasm::align=3, wasm::offset=0](address, value)
+}
+
+fn squared_distance[basic](points: I32, pairs: I32, k: I32): I64 {
+  let i = i32_load(pairs + 8 * k);
+  let j = i32_load(pairs + 8 * k + 4);
+  let xi = wasm::i64_extend_i32_u(i32_load(points + 12 * i));
+  let yi = wasm::i64_extend_i32_u(i32_load(points + 12 * i + 4));
+  let zi = wasm::i64_extend_i32_u(i32_load(points + 12 * i + 8));
+  let xj = wasm::i64_extend_i32_u(i32_load(points + 12 * j));
+  let yj = wasm::i64_extend_i32_u(i32_load(points + 12 * j + 4));
+  let zj = wasm::i64_extend_i32_u(i32_load(points + 12 * j + 8));
+  let x = wasm::i64_sub(xj, xi);
+  let y = wasm::i64_sub(yj, yi);
+  let z = wasm::i64_sub(zj, zi);
+  wasm::i64_add(
+    wasm::i64_add(
+      wasm::i64_mul(x, x),
+      wasm::i64_mul(y, y),
+    ),
+    wasm::i64_mul(z, z),
+  )
+}
+
+fn less_or_equal[basic](points: I32, pairs: I32, i: I32, j: I32): I32 {
+  wasm::i64_le_u(
+    squared_distance(points, pairs, i),
+    squared_distance(points, pairs, j),
+  )
+}
+
+fn swap[basic](pairs: I32, i: I32, j: I32) {
+  let a = i64_load(pairs + 8 * i);
+  let b = i64_load(pairs + 8 * j);
+  i64_store(pairs + 8 * i, b);
+  i64_store(pairs + 8 * j, a);
+}
+
+fn partition[basic](
+  n: I32,
+  m: I32,
+  points: I32,
+  pairs: I32,
+  lo: I32,
+  hi: I32,
+): I32 {
+  let pivot = hi;
+  var i = lo;
+  var j = lo;
+  while j < hi {
+    if less_or_equal(points, pairs, j, pivot) {
+      swap(pairs, i, j);
+      i = i + 1;
+    }
+    j = j + 1;
+  }
+  swap(pairs, i, hi);
+  i
+}
+
+fn qs_helper[basic](n: I32, m: I32, points: I32, pairs: I32, lo: I32, hi: I32) {
+  if lo >= hi {} else if lo < 0 {} else {
+    let p = partition(n, m, points, pairs, lo, hi);
+    qs_helper(n, m, points, pairs, lo, p - 1);
+    qs_helper(n, m, points, pairs, p + 1, hi);
+  }
+}
+
+fn quicksort[basic](n: I32, m: I32, points: I32, pairs: I32) {
+  qs_helper(n, m, points, pairs, 0, m - 1);
+}
+
+struct Forest {
+  n: I32,
+  pointer: I32,
+}
+
+fn make_forest[alloc](n: I32): Forest {
+  let bytes = 8 * n;
+  reserve(bytes);
+  let pointer = stack();
+  claim(bytes);
+  var i = 0;
+  while i < n {
+    i32_store(pointer + 8 * i, i);
+    i32_store(pointer + 8 * i + 4, 1);
+    i = i + 1;
+  }
+  Forest { n, pointer }
+}
+
+fn Forest.parent[basic](i: I32): I32 {
+  i32_load(this.pointer + 8 * i)
+}
+
+fn Forest.size[basic](i: I32): I32 {
+  i32_load(this.pointer + 8 * i + 4)
+}
+
+fn Forest.set_parent[basic](i: I32, parent: I32) {
+  i32_store(this.pointer + 8 * i, parent)
+}
+
+fn Forest.set_size[basic](i: I32, size: I32) {
+  i32_store(this.pointer + 8 * i + 4, size)
+}
+
+fn Forest.find[basic](i: I32): I32 {
+  let parent = this.parent(i);
+  let result = if parent != i {
+    this.set_parent(i, this.find(parent));
+    this.parent(i)
+  } else {
+    i
+  };
+  result
+}
+
+fn Forest.union[basic](i: I32, j: I32) {
+  i = this.find(i);
+  j = this.find(j);
+  if i != j {
+    if this.size(i) < this.size(j) {
+      let a = i;
+      let b = j;
+      i = b;
+      j = a;
+    }
+    this.set_parent(j, i);
+    this.set_size(i, this.size(i) + this.size(j));
+  }
+}
+
+fn selection_sort[basic](len: I32, array: I32) {
+  var i = 0;
+  while i < len {
+    var m = i32_load(array + 4 * i);
+    var k = i;
+    var j = i + 1;
+    while j < len {
+      let n = i32_load(array + 4 * j);
+      if wasm::i32_lt_u(n, m) {
+        m = n;
+        k = j;
+      }
+      j = j + 1;
+    }
+    if k != i {
+      let a = i32_load(array + 4 * i);
+      let b = i32_load(array + 4 * k);
+      i32_store(array + 4 * i, b);
+      i32_store(array + 4 * k, a);
+    }
+    i = i + 1;
+  }
+}
+
+fn main[alloc]() {
+  let cli = args();
+  let connections = string_to_uint32(cli.get(2));
+  let input = read(cli.get(1));
+  let points = stack();
+  var n = 0;
+  var x = 0;
+  while x < input.length {
+    var y = x + 1;
+    while input.get(y) != 44 {
+      y = y + 1;
+    }
+    y = y + 1;
+    var z = y;
+    while input.get(z) != 44 {
+      z = z + 1;
+    }
+    z = z + 1;
+    var end = z;
+    while input.get(end) != 10 {
+      end = end + 1;
+    }
+    reserve(12 * (n + 1));
+    i32_store(points + 12 * n, string_to_uint32(String {
+      pointer = input.pointer + x,
+      length = (y - 1) - x,
+    }));
+    i32_store(points + 12 * n + 4, string_to_uint32(String {
+      pointer = input.pointer + y,
+      length = (z - 1) - y,
+    }));
+    i32_store(points + 12 * n + 8, string_to_uint32(String {
+      pointer = input.pointer + z,
+      length = end - z,
+    }));
+    n = n + 1;
+    x = end + 1;
+  }
+  claim(12 * n);
+  let m = n * (n - 1) / 2;
+  let bytes = 8 * m;
+  reserve(bytes);
+  let pairs = stack();
+  claim(bytes);
+  var k = 0;
+  var i = 0;
+  while i < n {
+    var j = i + 1;
+    while j < n {
+      i32_store(pairs + 8 * k, i);
+      i32_store(pairs + 8 * k + 4, j);
+      k = k + 1;
+      j = j + 1;
+    }
+    i = i + 1;
+  }
+  quicksort(n, m, points, pairs);
+  let forest = make_forest(n);
+  k = 0;
+  while k < connections {
+    let i = i32_load(pairs + 8 * k);
+    let j = i32_load(pairs + 8 * k + 4);
+    forest.union(i, j);
+    k = k + 1;
+  }
+  var num_sizes = 0;
+  var sizes = stack();
+  i = 0;
+  while i < n {
+    if forest.find(i) == i {
+      reserve(4 * (num_sizes + 1));
+      i32_store(sizes + 4 * num_sizes, forest.size(i));
+      num_sizes = num_sizes + 1;
+    }
+    i = i + 1;
+  }
+  claim(4 * num_sizes);
+  selection_sort(num_sizes, sizes);
+  var product = 1;
+  i = num_sizes - 3;
+  while i < num_sizes {
+    product = product * i32_load(sizes + 4 * i);
+    i = i + 1;
+  }
+  println(uint32_to_string(product));
+}

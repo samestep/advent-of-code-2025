@@ -19,3 +19,9 @@ Then you can run the first day 1 puzzle like this:
 ```sh
 moss day01/puzzle1.moss day01/input.txt
 ```
+
+The only puzzle that requires input in a different format is part 1 of day 8:
+
+```sh
+moss day08/puzzle1.moss day08/input.txt 1000
+```
