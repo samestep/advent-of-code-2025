@@ -1,0 +1,67 @@
+type I32 = wasm::I32;
+
+fn i32_load[basic](address: I32): I32 {
+    wasm::i32_load[wasm::align=2, wasm::offset=0](address)
+}
+
+fn i32_store[basic](address: I32, value: I32) {
+    wasm::i32_store[wasm::align=2, wasm::offset=0](address, value)
+}
+
+fn main[alloc]() {
+  let input = read(args().get(1));
+  let reds = stack();
+  var n = 0;
+  var x = 0;
+  while x < input.length {
+    var y = x + 1;
+    while input.get(y) != 44 {
+      y = y + 1;
+    }
+    y = y + 1;
+    var end = y;
+    while input.get(end) != 10 {
+      end = end + 1;
+    }
+    reserve(8 * (n + 1));
+    i32_store(reds + 8 * n, string_to_uint32(String {
+      pointer = input.pointer + x,
+      length = (y - 1) - x,
+    }));
+    i32_store(reds + 8 * n + 4, string_to_uint32(String {
+      pointer = input.pointer + y,
+      length = end - y,
+    }));
+    n = n + 1;
+    x = end + 1;
+  }
+  claim(8 * n);
+  let zero = wasm::i64_extend_i32_u(0);
+  let one = wasm::i64_extend_i32_u(1);
+  var largest = zero;
+  var i = 0;
+  while i < n {
+    let xi = wasm::i64_extend_i32_u(i32_load(reds + 8 * i));
+    let yi = wasm::i64_extend_i32_u(i32_load(reds + 8 * i + 4));
+    var j = i + 1;
+    while j < n {
+      let xj = wasm::i64_extend_i32_u(i32_load(reds + 8 * j));
+      let yj = wasm::i64_extend_i32_u(i32_load(reds + 8 * j + 4));
+      var x = wasm::i64_sub(xj, xi);
+      if wasm::i64_lt_s(x, zero) {
+        x = wasm::i64_sub(zero, x);
+      }
+      var y = wasm::i64_sub(yj, yi);
+      if wasm::i64_lt_s(y, zero) {
+        y = wasm::i64_sub(zero, y);
+      }
+      let area = wasm::i64_mul(wasm::i64_add(x, one), wasm::i64_add(y, one));
+      if wasm::i64_gt_u(area, largest) {
+        largest = area;
+      }
+      j = j + 1;
+    }
+    i = i + 1;
+  }
+  println(uint64_to_string(largest));
+}
