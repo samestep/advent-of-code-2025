@@ -1,0 +1,170 @@
+type I32 = wasm::I32;
+
+fn i32_load16_u[wasm::wasm, static wasm::memidx](address: I32): I32 {
+  wasm::i32_load16_u[wasm::align=1, wasm::offset=0](address)
+}
+
+fn i32_store16[wasm::wasm, static wasm::memidx](address: I32, value: I32) {
+  wasm::i32_store16[wasm::align=1, wasm::offset=0](address, value);
+}
+
+val mem_machines: wasm::MemIdx;
+
+struct Machines {
+  meta: I32,
+}
+
+fn Machines.count[basic](): I32 {
+  i32_load16_u(this.meta)
+}
+
+fn Machines.set_count[basic, mem_machines](n: I32) {
+  while n > (65536 / 2) * wasm::memory_size[wasm::memidx=mem_machines]() {
+    wasm::memory_grow[wasm::memidx=mem_machines](1);
+  }
+  i32_store16(this.meta, n);
+}
+
+fn Machines.push[basic, mem_machines](
+  lights: I32, button_start: I32, num_buttons: I32
+) {
+  if lights > 32767 { wasm::unreachable() }
+  if button_start > 32767 { wasm::unreachable() }
+  if num_buttons > 32767 { wasm::unreachable() }
+  let n = this.count();
+  this.set_count(n + 1);
+  i32_store16[wasm::memidx=mem_machines](6 * n, lights);
+  i32_store16[wasm::memidx=mem_machines](6 * n + 2, button_start);
+  i32_store16[wasm::memidx=mem_machines](6 * n + 4, num_buttons);
+}
+
+fn Machines.get_lights[basic, mem_machines](index: I32): I32 {
+  if index >= this.count() { wasm::unreachable() }
+  i32_load16_u[wasm::memidx=mem_machines](6 * index)
+}
+
+fn Machines.get_button_start[basic, mem_machines](index: I32): I32 {
+  if index >= this.count() { wasm::unreachable() }
+  i32_load16_u[wasm::memidx=mem_machines](6 * index + 2)
+}
+
+fn Machines.get_num_buttons[basic, mem_machines](index: I32): I32 {
+  if index >= this.count() { wasm::unreachable() }
+  i32_load16_u[wasm::memidx=mem_machines](6 * index + 4)
+}
+
+val mem_buttons: wasm::MemIdx;
+
+struct Buttons {
+  meta: I32,
+}
+
+fn Buttons.count[basic](): I32 {
+  i32_load16_u(this.meta)
+}
+
+fn Buttons.set_count[basic, mem_buttons](n: I32) {
+  while n > (65536 / 6) * wasm::memory_size[wasm::memidx=mem_buttons]() {
+    wasm::memory_grow[wasm::memidx=mem_buttons](1);
+  }
+  i32_store16(this.meta, n);
+}
+
+fn Buttons.push[basic, mem_buttons](button: I32) {
+  if button > 32767 { wasm::unreachable() }
+  let n = this.count();
+  this.set_count(n + 1);
+  i32_store16[wasm::memidx=mem_buttons](2 * n, button);
+}
+
+fn Buttons.get[basic, mem_buttons](index: I32): I32 {
+  if index >= this.count() { wasm::unreachable() }
+  i32_load16_u[wasm::memidx=mem_buttons](2 * index)
+}
+
+fn Buttons.fewest[basic, mem_buttons](goal: I32, start: I32, len: I32): I32 {
+  let result = if len == 0 {
+    let c = if goal == 0 {
+      0
+    } else {
+      0 - 1
+    };
+    c
+  } else {
+    let button = this.get(start);
+    let a = this.fewest(goal, start + 1, len - 1);
+    let b = this.fewest(wasm::i32_xor(goal, button), start + 1, len - 1);
+    var c = a;
+    if b < 0 {
+    } else if a < 0 {
+      c = b + 1;
+    } else if b + 1 < a {
+      c = b + 1;
+    }
+    c
+  };
+  result
+}
+
+fn main[alloc, mem_machines, mem_buttons]() {
+  let input = read(args().get(1));
+  reserve(4);
+  let pointer = stack();
+  let machines = Machines { meta = pointer };
+  let buttons = Buttons { meta = pointer + 2 };
+  claim(4);
+  var line_start = 0;
+  while line_start < input.length {
+    if input.get(line_start) != 91 { wasm::unreachable() }
+    let light_start = line_start + 1;
+    var light_end = light_start;
+    var lights = 0;
+    while input.get(light_end) != 93 {
+      if input.get(light_end) == 35 {
+        lights = wasm::i32_or(
+          lights,
+          wasm::i32_shl(1, light_end - light_start),
+        );
+      }
+      light_end = light_end + 1;
+    }
+    let first_button = buttons.count();
+    var num_buttons = 0;
+    var button_start = light_end + 2;
+    while input.get(button_start) == 40 {
+      var button = 0;
+      var toggle_start = button_start + 1;
+      while input.get(toggle_start) != 32 {
+        var toggle_end = toggle_start;
+        while input.get(toggle_end) >= 48 {
+          toggle_end = toggle_end + 1;
+        }
+        let toggle = string_to_uint32(String {
+          pointer = input.pointer + toggle_start,
+          length = toggle_end - toggle_start,
+        });
+        button = wasm::i32_or(button, wasm::i32_shl(1, toggle));
+        toggle_start = toggle_end + 1;
+      }
+      buttons.push(button);
+      num_buttons = num_buttons + 1;
+      button_start = toggle_start + 1;
+    }
+    machines.push(lights, first_button, num_buttons);
+    var line_end = button_start;
+    while input.get(line_end) != 10 {
+      line_end = line_end + 1;
+    }
+    line_start = line_end + 1;
+  }
+  var sum = 0;
+  var i = 0;
+  while i < machines.count() {
+    let goal = machines.get_lights(i);
+    let start = machines.get_button_start(i);
+    let n = machines.get_num_buttons(i);
+    sum = sum + buttons.fewest(goal, start, n);
+    i = i + 1;
+  }
+  println(uint32_to_string(sum));
+}
