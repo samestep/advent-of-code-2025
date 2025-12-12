@@ -175,6 +175,41 @@ fn topsort[alloc, mem_devices, mem_cables](
   sorted
 }
 
+fn count_paths[scratch, mem_letters, mem_devices, mem_cables](
+  letters: Letters,
+  devices: Devices,
+  cables: Cables,
+  sorted: I32,
+  begin: String,
+  end: String,
+): I64 {
+  let n = devices.count;
+  reserve(8 * n);
+  let paths = stack();
+  var i = 0;
+  while i < n {
+    i64_store(paths + 8 * i, wasm::i64_extend_i32_u(0));
+    i = i + 1;
+  }
+  i64_store(paths + 8 * letters.get(begin), wasm::i64_extend_i32_u(1));
+  var i = 0;
+  while i < n {
+    let j = i32_load16_u(sorted + 2 * i);
+    let num_paths = i64_load(paths + 8 * j);
+    let start = devices.get_cable_start(j);
+    let len = devices.get_num_cables(j);
+    var k = 0;
+    while k < len {
+      let dep = cables.get(start + k);
+      let prev = i64_load(paths + 8 * dep);
+      i64_store(paths + 8 * dep, wasm::i64_add(prev, num_paths));
+      k = k + 1;
+    }
+    i = i + 1;
+  }
+  i64_load(paths + 8 * letters.get(end))
+}
+
 fn main[alloc, mem_letters, mem_devices, mem_cables]() {
   let input = read(args().get(1));
   wasm::memory_grow[wasm::memidx=mem_letters](1);
@@ -212,29 +247,9 @@ fn main[alloc, mem_letters, mem_devices, mem_cables]() {
     i = i + 1;
   }
   let sorted = topsort(devices, cables);
-  reserve(8 * n);
-  let paths = stack();
-  claim(8 * n);
-  var i = 0;
-  while i < n {
-    i64_store(paths + 8 * i, wasm::i64_extend_i32_u(0));
-    i = i + 1;
-  }
-  i64_store(paths + 8 * letters.get("you"), wasm::i64_extend_i32_u(1));
-  var i = 0;
-  while i < n {
-    let j = i32_load16_u(sorted + 2 * i);
-    let num_paths = i64_load(paths + 8 * j);
-    let start = devices.get_cable_start(j);
-    let len = devices.get_num_cables(j);
-    var k = 0;
-    while k < len {
-      let dep = cables.get(start + k);
-      let prev = i64_load(paths + 8 * dep);
-      i64_store(paths + 8 * dep, wasm::i64_add(prev, num_paths));
-      k = k + 1;
-    }
-    i = i + 1;
-  }
-  println(uint64_to_string(i64_load(paths + 8 * out)));
+  let a = count_paths(letters, devices, cables, sorted, "svr", "fft");
+  let b = count_paths(letters, devices, cables, sorted, "fft", "dac");
+  let c = count_paths(letters, devices, cables, sorted, "dac", "out");
+  let total = wasm::i64_mul((wasm::i64_mul(a, b)), c);
+  println(uint64_to_string(total));
 }
