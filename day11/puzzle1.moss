@@ -1,0 +1,231 @@
+type I32 = wasm::I32;
+
+fn i32_load8_s[wasm::wasm, static wasm::memidx](address: I32): I32 {
+  wasm::i32_load8_s[wasm::align=0, wasm::offset=0](address)
+}
+
+fn i32_load16_s[wasm::wasm, static wasm::memidx](address: I32): I32 {
+  wasm::i32_load16_s[wasm::align=1, wasm::offset=0](address)
+}
+
+fn i32_store16[wasm::wasm, static wasm::memidx](address: I32, value: I32) {
+  wasm::i32_store16[wasm::align=1, wasm::offset=0](address, value);
+}
+
+fn decode[basic](string: String): I32 {
+  if string.length != 3 { wasm::unreachable() }
+  let a = i32_load8_s(string.pointer) - 97;
+  let b = i32_load8_s(string.pointer + 1) - 97;
+  let c = i32_load8_s(string.pointer + 2) - 97;
+  26 * (26 * a + b) + c
+}
+
+val mem_letters: wasm::MemIdx;
+
+struct Letters {
+  meta: I32,
+}
+
+fn Letters.count[basic](): I32 {
+  i32_load16_s(this.meta)
+}
+
+fn Letters.set_count[basic](n: I32) {
+  i32_store16(this.meta, n);
+}
+
+fn Letters.push[basic, mem_letters](string: String): I32 {
+  let j = decode(string);
+  let i = i32_load16_s[wasm::memidx=mem_letters](2 * j) - 1;
+  let result = if i < 0 {
+    let n = this.count() + 1;
+    this.set_count(n);
+    i32_store16[wasm::memidx=mem_letters](2 * j, n);
+    n
+  } else {
+    i
+  };
+  result
+}
+
+fn Letters.get[basic, mem_letters](string: String): I32 {
+  let j = decode(string);
+  i32_load16_s[wasm::memidx=mem_letters](2 * j) - 1
+}
+
+val mem_devices: wasm::MemIdx;
+
+struct Devices {
+  count: I32,
+}
+
+fn Devices.set[basic, mem_devices](
+  index: I32, cable_start: I32, num_cables: I32
+) {
+  if index >= this.count { wasm::unreachable() }
+  if cable_start > 32767 { wasm::unreachable() }
+  if num_cables > 32767 { wasm::unreachable() }
+  i32_store16[wasm::memidx=mem_devices](4 * index, cable_start);
+  i32_store16[wasm::memidx=mem_devices](4 * index + 2, num_cables);
+}
+
+fn Devices.get_cable_start[basic, mem_devices](index: I32): I32 {
+  if index >= this.count { wasm::unreachable() }
+  i32_load16_s[wasm::memidx=mem_devices](4 * index)
+}
+
+fn Devices.get_num_cables[basic, mem_devices](index: I32): I32 {
+  if index >= this.count { wasm::unreachable() }
+  i32_load16_s[wasm::memidx=mem_devices](4 * index + 2)
+}
+
+val mem_cables: wasm::MemIdx;
+
+struct Cables {
+  meta: I32,
+}
+
+fn Cables.count[basic](): I32 {
+  i32_load16_s(this.meta)
+}
+
+fn Cables.set_count[basic, mem_cables](n: I32) {
+  while n > (65536 / 4) * wasm::memory_size[wasm::memidx=mem_cables]() {
+    wasm::memory_grow[wasm::memidx=mem_cables](1);
+  }
+  i32_store16(this.meta, n);
+}
+
+fn Cables.push[basic, mem_cables](device: I32) {
+  if device > 32767 { wasm::unreachable() }
+  let n = this.count();
+  this.set_count(n + 1);
+  i32_store16[wasm::memidx=mem_cables](2 * n, device);
+}
+
+fn Cables.get[basic, mem_cables](index: I32): I32 {
+  if index >= this.count() { wasm::unreachable() }
+  i32_load16_s[wasm::memidx=mem_cables](2 * index)
+}
+
+fn topsort[alloc, mem_devices, mem_cables](
+  devices: Devices, cables: Cables
+): I32 {
+  let n = devices.count;
+  let bytes = 2 * n;
+  reserve(bytes);
+  let sorted = stack();
+  claim(bytes);
+  var m = 0;
+  reserve(2 * bytes);
+  let dependents = stack();
+  let todo = dependents + bytes;
+  var height = 0;
+  var i = 0;
+  while i < n {
+    let start = devices.get_cable_start(i);
+    let k = devices.get_num_cables(i);
+    var j = 0;
+    while j < k {
+      let dep = cables.get(start + j);
+      let count = i32_load16_s(dependents + 2 * dep);
+      i32_store16(dependents + 2 * dep, count + 1);
+      j = j + 1;
+    }
+    i = i + 1;
+  }
+  var i = 0;
+  while i < n {
+    if i32_load16_s(dependents + 2 * i) == 0 {
+      i32_store16(todo + 2 * height, i);
+      height = height + 1;
+    }
+    i = i + 1;
+  }
+  while height > 0 {
+    height = height - 1;
+    let i = i32_load16_s(todo + 2 * height);
+    i32_store16(sorted + 2 * m, i);
+    m = m + 1;
+    let start = devices.get_cable_start(i);
+    let k = devices.get_num_cables(i);
+    var j = 0;
+    while j < k {
+      let dep = cables.get(start + j);
+      var count = i32_load16_s(dependents + 2 * dep);
+      count = count - 1;
+      i32_store16(dependents + 2 * dep, count);
+      if count == 0 {
+        i32_store16(todo + 2 * height, dep);
+        height = height + 1;
+      }
+      j = j + 1;
+    }
+  }
+  if m != n { wasm::unreachable() }
+  sorted
+}
+
+fn main[alloc, mem_letters, mem_devices, mem_cables]() {
+  let input = read(args().get(1));
+  wasm::memory_grow[wasm::memidx=mem_letters](1);
+  reserve(2);
+  let letters = Letters { meta = stack() };
+  claim(2);
+  var line_start = 0;
+  while line_start < input.length {
+    letters.push(String { pointer = input.pointer + line_start, length = 3 });
+    while input.get(line_start) != 10 {
+      line_start = line_start + 1;
+    }
+    line_start = line_start + 1;
+  }
+  letters.push("out");
+  let n = letters.count();
+  wasm::memory_grow[wasm::memidx=mem_devices](1);
+  let devices = Devices { count = n };
+  reserve(2);
+  let cables = Cables { meta = stack() };
+  claim(2);
+  line_start = 0;
+  var i = 0;
+  while line_start < input.length {
+    let cable_start = cables.count();
+    var space = line_start + 4;
+    while input.get(space) == 32 {
+      let string = String { pointer = input.pointer + space + 1, length = 3 };
+      cables.push(letters.get(string));
+      space = space + 4;
+    }
+    let num_cables = cables.count() - cable_start;
+    devices.set(i, cable_start, num_cables);
+    line_start = space + 1;
+    i = i + 1;
+  }
+  let sorted = topsort(devices, cables);
+  reserve(2 * n);
+  let paths = stack();
+  claim(2 * n);
+  var i = 0;
+  while i < n {
+    i32_store16(paths + 2 * i, 0);
+    i = i + 1;
+  }
+  i32_store16(paths + 2 * letters.get("you"), 1);
+  var i = 0;
+  while i < n {
+    let j = i32_load16_s(sorted + 2 * i);
+    let num_paths = i32_load16_s(paths + 2 * j);
+    let start = devices.get_cable_start(j);
+    let len = devices.get_num_cables(j);
+    var k = 0;
+    while k < len {
+      let dep = cables.get(start + k);
+      let prev = i32_load16_s(paths + 2 * dep);
+      i32_store16(paths + 2 * dep, prev + num_paths);
+      k = k + 1;
+    }
+    i = i + 1;
+  }
+  println(uint32_to_string(i32_load16_s(paths + 2 * (n - 1))));
+}
