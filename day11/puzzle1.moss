@@ -38,9 +38,9 @@ fn Letters.push[basic, mem_letters](string: String): I32 {
   let j = decode(string);
   let i = i32_load16_s[wasm::memidx=mem_letters](2 * j) - 1;
   let result = if i < 0 {
-    let n = this.count() + 1;
-    this.set_count(n);
-    i32_store16[wasm::memidx=mem_letters](2 * j, n);
+    let n = this.count();
+    this.set_count(n + 1);
+    i32_store16[wasm::memidx=mem_letters](2 * j, n + 1);
     n
   } else {
     i
@@ -180,7 +180,7 @@ fn main[alloc, mem_letters, mem_devices, mem_cables]() {
     }
     line_start = line_start + 1;
   }
-  letters.push("out");
+  let out = letters.push("out");
   let n = letters.count();
   wasm::memory_grow[wasm::memidx=mem_devices](1);
   let devices = Devices { count = n };
@@ -227,5 +227,5 @@ fn main[alloc, mem_letters, mem_devices, mem_cables]() {
     }
     i = i + 1;
   }
-  println(uint32_to_string(i32_load16_s(paths + 2 * (n - 1))));
+  println(uint32_to_string(i32_load16_s(paths + 2 * out)));
 }
