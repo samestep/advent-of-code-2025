@@ -1,37 +1,37 @@
-fn main[alloc]() {
-  let input = read(args().get(1));
+import "../lib.moss" as lib;
+
+assume lib::Ctx;
+
+fn main![Std]() {
+  bind lib::ctx();
+  let input = lib::input();
   var password = 0;
   var dial = 50;
-  var line_start = 0;
-  while line_start < input.length {
-    var line_end = line_start;
-    while input.get(line_end) != 10 {
-      line_end = line_end + 1;
-    }
-
-    let d = input.get(line_start);
-    let n = string_to_uint32(String {
-      pointer = input.pointer + line_start + 1,
-      length = line_end - (line_start + 1),
-    });
-    if d == 76 {
-      dial = dial - n;
+  var lines = input.lines();
+  loop {
+    let line = match lines.next() {
+      None => break,
+      Some(line) => line,
+    };
+    let d = line.get(0);
+    let n =
+      line.substring({ start = 1, length = line.length() - 1 }).parse_int();
+    if d == 'L' {
+      dial -= n;
       while dial < 0 {
-        dial = dial + 100;
+        dial += 100;
       }
-    } else if d == 82 {
-      dial = dial + n;
+    } else if d == 'R' {
+      dial += n;
       while dial > 99 {
-        dial = dial - 100;
+        dial -= 100;
       }
     } else {
-      wasm::unreachable();
+      lib::panic();
     }
     if dial == 0 {
-      password = password + 1;
+      password += 1;
     }
-
-    line_start = line_end + 1;
   }
-  println(uint32_to_string(password));
+  lib::println(password.to_string());
 }

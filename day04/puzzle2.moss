@@ -1,159 +1,69 @@
-type I32 = wasm::I32;
+import "../lib.moss" as lib use Grid, Layout, List, Loc;
 
-struct Grid {
-  string: String,
-  width: I32,
+assume lib::Ctx;
+
+fn count(char: Char): Int {
+  if char == '@' { 1 } else { 0 }
 }
 
-fn Grid.width(): I32 {
-  this.width
+fn .adjacent[This=Grid]({ row, col }: Loc): Int {
+    count(this.get({ row = row - 1, col = col - 1 }))
+  + count(this.get({ row = row - 1, col           }))
+  + count(this.get({ row = row - 1, col = col + 1 }))
+  + count(this.get({ row          , col = col - 1 }))
+  + count(this.get({ row          , col = col + 1 }))
+  + count(this.get({ row = row + 1, col = col - 1 }))
+  + count(this.get({ row = row + 1, col           }))
+  + count(this.get({ row = row + 1, col = col + 1 }))
 }
 
-fn Grid.height(): I32 {
-  this.string.length / (this.width + 1)
+fn .removable[This=Grid](loc: Loc): Bool {
+  (grid.get(loc) != '@') & (grid.adjacent(loc) < 4)
 }
 
-fn Grid.get[basic](row: I32, col: I32): I32 {
-  let result = if row < 0 {
-    0
-  } else if col < 0 {
-    0
-  } else if row >= this.height() {
-    0
-  } else if col >= this.width() {
-    0
-  } else if this.string.get(row * (this.width() + 1) + col) == 64 {
-    1
-  } else {
-    0
-  };
-  result
+fn .remove[This=Grid](loc: Loc) {
+  this.set(loc, '.').unwrap();
 }
 
-fn Grid.remove[basic](row: I32, col: I32) {
-  if row < 0 {
-  } else if col < 0 {
-  } else if row >= this.height() {
-  } else if col >= this.width() {
-  } else {
-    let address = this.string.pointer + row * (this.width() + 1) + col;
-    wasm::i32_store8[wasm::align=0, wasm::offset=0](address, 46);
+fn attempt[Layout[Loc]](grid: Grid, inout stack: List[Loc], loc: Loc) {
+  if grid.removable(loc) {
+    stack.push(loc);
   }
 }
 
-fn Grid.adjacent[basic](row: I32, col: I32): I32 {
-    this.get(row - 1, col - 1)
-  + this.get(row - 1, col)
-  + this.get(row - 1, col + 1)
-  + this.get(row, col - 1)
-  + this.get(row, col + 1)
-  + this.get(row + 1, col - 1)
-  + this.get(row + 1, col)
-  + this.get(row + 1, col + 1)
-}
-
-fn make_grid[basic](string: String): Grid {
-  var width = 0;
-  while string.get(width) != 10 {
-    width = width + 1;
-  }
-  Grid { string, width }
-}
-
-val mem_stack: wasm::MemIdx;
-
-fn height(stack: I32): I32 {
-  stack / 8
-}
-
-fn push[wasm::wasm, mem_stack](stack: I32, row: I32, col: I32): I32 {
-  if stack == 8192 * wasm::memory_size[wasm::memidx=mem_stack]() {
-    wasm::memory_grow[wasm::memidx=mem_stack](1);
-  }
-  wasm::i32_store
-    [wasm::memidx=mem_stack, wasm::align=2, wasm::offset=0]
-    (stack, row);
-  wasm::i32_store
-    [wasm::memidx=mem_stack, wasm::align=2, wasm::offset=4]
-    (stack, col);
-  stack + 8
-}
-
-fn peek_row[wasm::wasm, mem_stack](stack: I32): I32 {
-  if stack < 8 { wasm::unreachable() }
-  wasm::i32_load
-    [wasm::memidx=mem_stack, wasm::align=2, wasm::offset=0]
-    (stack - 8)
-}
-
-fn peek_col[wasm::wasm, mem_stack](stack: I32): I32 {
-  if stack < 8 { wasm::unreachable() }
-  wasm::i32_load
-    [wasm::memidx=mem_stack, wasm::align=2, wasm::offset=0]
-    (stack - 4)
-}
-
-fn pop[wasm::wasm, mem_stack](stack: I32): I32 {
-  if stack < 8 { wasm::unreachable() }
-  stack - 8
-}
-
-fn main[alloc, mem_stack]() {
-  let input = read(args().get(1));
-  let grid = make_grid(input);
-  var stack = 0;
+fn main![Std]() {
+  bind lib::ctx();
+  let input = lib::input();
+  let grid = input.grid();
+  var stack = List[Loc]::new();
   var row = 0;
   while row < grid.height() {
     var col = 0;
     while col < grid.width() {
-      if grid.get(row, col) != 1 {} else if grid.adjacent(row, col) < 4 {
-        stack = push(stack, row, col);
-      }
-      col = col + 1;
+      attempt(grid, stack, { row, col });
+      col += 1;
     }
-    row = row + 1;
+    row += 1;
   }
   var rolls = 0;
-  while height(stack) > 0 {
-    let row = peek_row(stack);
-    let col = peek_col(stack);
-    stack = pop(stack);
-    if grid.get(row, col) == 1 {
-      grid.remove(row, col);
-      rolls = rolls + 1;
-      if grid.get(row - 1, col - 1) != 1 {
-      } else if grid.adjacent(row - 1, col - 1) < 4 {
-        stack = push(stack, row - 1, col - 1);
-      }
-      if grid.get(row - 1, col) != 1 {
-      } else if grid.adjacent(row - 1, col) < 4 {
-        stack = push(stack, row - 1, col);
-      }
-      if grid.get(row - 1, col + 1) != 1 {
-      } else if grid.adjacent(row - 1, col + 1) < 4 {
-        stack = push(stack, row - 1, col + 1);
-      }
-      if grid.get(row, col - 1) != 1 {
-      } else if grid.adjacent(row, col - 1) < 4 {
-        stack = push(stack, row, col - 1);
-      }
-      if grid.get(row, col + 1) != 1 {
-      } else if grid.adjacent(row, col + 1) < 4 {
-        stack = push(stack, row, col + 1);
-      }
-      if grid.get(row + 1, col - 1) != 1 {
-      } else if grid.adjacent(row + 1, col - 1) < 4 {
-        stack = push(stack, row + 1, col - 1);
-      }
-      if grid.get(row + 1, col) != 1 {
-      } else if grid.adjacent(row + 1, col) < 4 {
-        stack = push(stack, row + 1, col);
-      }
-      if grid.get(row + 1, col + 1) != 1 {
-      } else if grid.adjacent(row + 1, col + 1) < 4 {
-        stack = push(stack, row + 1, col + 1);
-      }
+  loop {
+    let row, col = match stack.pop() {
+      None => break,
+      Some(top) => top,
+    };
+    if grid.get({ row, col }) == '@' {
+      grid.remove({ row, col });
+      rolls += 1;
+      var loc;
+      attempt(grid, stack, { row = row - 1, col = col - 1 });
+      attempt(grid, stack, { row = row - 1, col           });
+      attempt(grid, stack, { row = row - 1, col = col + 1 });
+      attempt(grid, stack, { row          , col = col - 1 });
+      attempt(grid, stack, { row          , col = col + 1 });
+      attempt(grid, stack, { row = row + 1, col = col - 1 });
+      attempt(grid, stack, { row = row + 1, col           });
+      attempt(grid, stack, { row = row + 1, col = col + 1 });
     }
   }
-  println(uint32_to_string(rolls));
+  lib::println(rolls.to_string());
 }
