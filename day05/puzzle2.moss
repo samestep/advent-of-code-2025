@@ -1,99 +1,40 @@
-type I32 = wasm::I32;
-type I64 = wasm::I64;
+import "../lib.moss" as lib;
 
-fn i32_load[basic](address: I32): I32 {
-    wasm::i32_load[wasm::align=2, wasm::offset=0](address)
-}
+assume lib::Ctx;
 
-fn i64_load[basic](address: I32): I64 {
-    wasm::i64_load[wasm::align=3, wasm::offset=0](address)
-}
-
-fn i32_store[basic](address: I32, value: I32) {
-    wasm::i32_store[wasm::align=2, wasm::offset=0](address, value)
-}
-
-fn selection_sort[basic](len: I32, data: I32, indices: I32) {
-  var i = 0;
-  while i < len {
-    var m = i64_load(data + 8 * i32_load(indices + 4 * i));
-    var k = i;
-    var j = i + 1;
-    while j < len {
-      let n = i64_load(data + 8 * i32_load(indices + 4 * j));
-      if wasm::i64_lt_u(n, m) {
-        m = n;
-        k = j;
-      }
-      j = j + 1;
+fn main![Std]() {
+  bind lib::ctx();
+  let input = lib::input();
+  var ids = List[Int64]::new();
+  var lines = input.lines();
+  loop {
+    let line = lines.next();
+    if line.length() == 0 {
+      lines.next();
+      break;
     }
-    if k != i {
-      let a = i32_load(indices + 4 * i);
-      let b = i32_load(indices + 4 * k);
-      i32_store(indices + 4 * i, b);
-      i32_store(indices + 4 * k, a);
-    }
-    i = i + 1;
+    let left, right = line.split('-').pair();
+    ids.push(left.parse_int64());
+    ids.push(right.parse_int64() + 1i64);
   }
-}
-
-fn main[alloc]() {
-  let input = read(args().get(1));
-  let ranges = stack();
-  var start = 0;
-  while input.get(start) != 10 {
-    var middle = start;
-    while input.get(middle) != 45 {
-      middle = middle + 1;
-    }
-    var end = middle;
-    while input.get(end) != 10 {
-      end = end + 1;
-    }
-    let first = string_to_uint64(String {
-      pointer = input.pointer + start,
-      length = middle - start,
-    });
-    let last = string_to_uint64(String {
-      pointer = input.pointer + middle + 1,
-      length = end - (middle + 1),
-    });
-    let exclusive = wasm::i64_add(last, wasm::i64_extend_i32_u(1));
-    reserve(16);
-    let pointer = stack();
-    claim(16);
-    wasm::i64_store[wasm::align=3, wasm::offset=0](pointer, first);
-    wasm::i64_store[wasm::align=3, wasm::offset=8](pointer, exclusive);
-    start = end + 1;
-  }
-  let ranges_end = stack();
-  let len = (ranges_end - ranges) / 8;
-  reserve(len * 4);
-  let indices = stack();
-  claim(len * 4);
-  var i = 0;
-  while i < len {
-    i32_store(indices + 4 * i, i);
-    i = i + 1;
-  }
-  selection_sort(len, ranges, indices);
-  var sum = wasm::i64_extend_i32_u(0);
+  ids.sort();
+  var sum = 0i64;
   var height = 0;
-  var id = wasm::i64_extend_i32_u(0);
-  i = 0;
+  var id = 0i64;
+  var i = 0;
   while i < len {
-    let j = i32_load(indices + 4 * i);
-    let id2 = i64_load(ranges + 8 * j);
+    let j = indices.get(i);
+    let id2 = ids.get(j);
     if height > 0 {
-      sum = wasm::i64_add(sum, wasm::i64_sub(id2, id));
+      sum += id2 - id;
     }
     if j % 2 == 0 {
-      height = height + 1;
+      height += 1;
     } else {
-      height = height - 1;
+      height -= 1;
     }
     id = id2;
-    i = i + 1;
+    i += 1;
   }
-  println(uint64_to_string(sum));
+  lib::println(sum.to_string());
 }

@@ -1,0 +1,178 @@
+context Layout[type T] =
+  # TODO
+;
+
+context Comparable[type T] =
+  # TODO
+;
+
+fn panic(): ! {
+  # TODO
+}
+
+fn .unwrap[infer type T; This=Option[T]](): T {
+  match option {
+    None => panic(),
+    Some(value) => value,
+  }
+}
+
+type Int32 RawInt32; # ??
+
+fn Int32.to_int64(): Int64 {
+  # TODO
+}
+
+type AsciiChar Int;
+
+fn AsciiChar.digit(): Int {
+  # TODO
+}
+
+type AsciiString {
+  pointer: Int,
+  length: Int,
+};
+
+fn AsciiString.length(): Int {
+  this.length
+}
+
+fn AsciiString.get(index: Int): AsciiChar {
+  # TODO
+}
+
+fn AsciiString.set(index: Int, char: Char): AsciiChar {
+  # TODO
+}
+
+fn AsciiString.substring({ start: Int, length: Int }): AsciiString {
+  # TODO
+}
+
+fn AsciiString.parse_int(): Int {
+  # TODO
+}
+
+fn println(string: AsciiString) {
+  # TODO
+}
+
+context Ctx =
+  Int=Int32,
+  Char=AsciiChar,
+  String=AsciiString,
+  # TODO
+;
+
+fn ctx(): bind Ctx {
+  # TODO
+}
+
+fn input[Ctx](): String {
+  # TODO
+}
+
+fn AsciiString.split(char: AsciiChar): Split {
+  # TODO
+}
+
+fn AsciiString.lines(): Split {
+  # TODO
+}
+
+type Split {
+  # TODO
+};
+
+fn Split.next[inout this](): Option[AsciiString] {
+  # TODO
+}
+
+fn Split.single(): AsciiString {
+  # TODO
+}
+
+fn Split.pair(): AsciiString, AsciiString {
+  # TODO
+}
+
+fn AsciiString.grid(): Grid {
+  # TODO
+}
+
+type Loc = { row: Int, col: Int };
+
+type Grid {
+  string: AsciiString,
+  width: Int,
+};
+
+fn Grid.width(): Int {
+  this.width
+}
+
+fn Grid.height(): Int {
+  this.string.length() / (this.width() + 1)
+}
+
+fn Grid.valid({ row, col }: Loc): Bool {
+  (row >= 0) & (col >= 0) & (row < this.height()) & (col < this.width())
+}
+
+fn Grid.offset({ row, col }: Loc): Bool {
+  row * (this.width() + 1) + col
+}
+
+fn Grid.get(loc: Loc): Option[Char] {
+  if this.valid(loc) {
+    Some(this.string.get(this.offset(loc)))
+  } else {
+    None
+  }
+}
+
+fn Grid.set(loc: Loc, char: Char): Option[()] {
+  if this.valid(loc) {
+    this.string.set(this.offset(loc), char);
+    Some(())
+  } else {
+    None
+  }
+}
+
+type List[type T] {
+  pointer: Int,
+  capacity: Int,
+  length: Int,
+}
+
+fn List[type T]::new(): List {
+  # TODO
+}
+
+fn List[type T].length(): Int {
+  this.length
+}
+
+fn List[type T; Layout[T]].push[inout this](element: T) {
+  # TODO
+}
+
+fn List[type T; Layout[T]].pop[inout this](): Option[T] {
+  # TODO
+}
+
+fn List[type T; Layout[T]].peek(): Option[T] {
+  # TODO
+}
+
+fn List[type T; Layout[T]].get(index: Int): Option[T] {
+  # TODO
+}
+
+fn List[type T; Layout[T], Comparable[T], choose].sort() {
+  # TODO
+}
+
+fn choose(bound: Int): Int;

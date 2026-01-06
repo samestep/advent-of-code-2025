@@ -1,43 +1,24 @@
-type I32 = wasm::I32;
+import "../lib.moss" as lib;
 
-fn not_end[basic](str: String, end: I32): I32 {
-  let result = if str.get(end) == 10 {
-    false
-  } else if str.get(end) == 44 {
-    false
-  } else {
-    true
-  };
-  result
-}
+assume lib::Ctx;
 
-fn main[alloc]() {
-  let input = read(args().get(1));
-  var sum = wasm::i64_extend_i32_u(0);
-  var start = 0;
-  while start < input.length {
-    var middle = start;
-    while input.get(middle) != 45 {
-      middle = middle + 1;
-    }
-    var end = middle;
-    while not_end(input, end) {
-      end = end + 1;
-    }
-
-    let first = string_to_uint64(String {
-      pointer = input.pointer + start,
-      length = middle - start,
-    });
-    let last = string_to_uint64(String {
-      pointer = input.pointer + middle + 1,
-      length = end - (middle + 1),
-    });
+fn main![Std]() {
+  bind lib::ctx();
+  let input = lib::input();
+  var sum = 0i64;
+  var ranges = input.lines().single().split(',');
+  loop {
+    let left, right = match ranges.next() {
+      None => break,
+      Some(range) => range.split('-').pair(),
+    };
+    let first = left.parse_int64();
+    let last = right.parse_int64();
     var n = first;
-    while wasm::i64_le_u(n, last) {
-      let s = uint64_to_string(n);
-      if s.length % 2 == 0 {
-        let h = s.length / 2;
+    while n <= last {
+      let s = n.to_string();
+      if s.length() % 2 == 0 {
+        let h = s.length() / 2;
         var a = 0;
         var b = h;
         var equal = true;
@@ -45,17 +26,15 @@ fn main[alloc]() {
           if s.get(a) != s.get(b) {
             equal = false;
           }
-          a = a + 1;
-          b = b + 1;
+          a += 1;
+          b += 1;
         }
         if equal {
-          sum = wasm::i64_add(sum, n);
+          sum += n;
         }
       }
-      n = wasm::i64_add(n, wasm::i64_extend_i32_u(1));
+      n += 1i64;
     }
-
-    start = end + 1;
   }
-  println(uint64_to_string(sum));
+  lib::println(sum.to_string());
 }

@@ -1,59 +1,39 @@
-fn main[alloc]() {
-  let input = read(args().get(1));
-  let ranges = stack();
-  var start = 0;
-  while input.get(start) != 10 {
-    var middle = start;
-    while input.get(middle) != 45 {
-      middle = middle + 1;
+import "../lib.moss" as lib use List;
+
+assume lib::Ctx;
+
+fn main![Std]() {
+  bind lib::ctx();
+  let input = lib::input();
+  var ranges = List[(Int64, Int64)]::new();
+  var lines = input.lines();
+  loop {
+    let line = lines.next();
+    if line.length() == 0 {
+      lines.next();
+      break;
     }
-    var end = middle;
-    while input.get(end) != 10 {
-      end = end + 1;
-    }
-    let first = string_to_uint64(String {
-      pointer = input.pointer + start,
-      length = middle - start,
-    });
-    let last = string_to_uint64(String {
-      pointer = input.pointer + middle + 1,
-      length = end - (middle + 1),
-    });
-    reserve(16);
-    let pointer = stack();
-    wasm::i64_store[wasm::align=3, wasm::offset=0](pointer, first);
-    wasm::i64_store[wasm::align=3, wasm::offset=8](pointer, last);
-    claim(16);
-    start = end + 1;
+    let left, right = line.split('-').pair();
+    ranges.push((left.parse_int64(), right.parse_int64()));
   }
-  let ranges_end = stack();
-  start = start + 1;
   var count = 0;
-  while start < input.length {
-    var end = start;
-    while input.get(end) != 10 {
-      end = end + 1;
-    }
-    let id = string_to_uint64(String {
-      pointer = input.pointer + start,
-      length = end - start,
-    });
+  loop {
+    let id = match lines.next() {
+      None => break,
+      Some(line) => line.parse_int64(),
+    };
     var fresh = false;
-    var range = ranges;
-    while range < ranges_end {
-      let first = wasm::i64_load[wasm::align=3, wasm::offset=0](range);
-      let last = wasm::i64_load[wasm::align=3, wasm::offset=8](range);
-      if wasm::i64_lt_u(id, first) {
-      } else if wasm::i64_lt_u(last, id) {
-      } else {
+    var i = 0;
+    while i < stack.length() {
+      let first, last = stack.get(i);
+      if (first <= id) & (id <= last) {
         fresh = true;
       }
-      range = range + 16;
+      i += 1;
     }
     if fresh {
-      count = count + 1;
+      count += 1;
     }
-    start = end + 1;
   }
-  println(uint32_to_string(count));
+  lib::println(count.to_string());
 }
